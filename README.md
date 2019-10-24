@@ -17,12 +17,12 @@ Object Detection With YOLOv3 in Keras
 </p>
 
 运行结果如下所示：<pr>
->car 67.59340167045593<pr>
->car 65.72997570037842<pr>
->car 96.19730710983276<pr>
->car 90.57093858718872<pr>
->car 85.83642244338989<pr>
->...<pr>
+>car 67.59340167045593 <pr>
+>car 65.72997570037842 <pr>
+>car 96.19730710983276 <pr>
+>car 90.57093858718872 <pr>
+>car 85.83642244338989 <pr>
+>... <pr>
 标出识别边界框的图像为：<pr>
 <p align="center">
 	<img src="https://github.com/LeeWise9/Img_repositories/blob/master/yolov3.png" alt="Sample"  width="500">
