@@ -26,7 +26,7 @@ Object Detection With YOLOv3 in Keras
 
 标出识别边界框的图像为：<br>
 <p align="center">
-	<img src="https://github.com/LeeWise9/Img_repositories/blob/master/yolov3.png" alt="Sample"  width="500">
+	<img src="https://github.com/LeeWise9/Img_repositories/blob/master/yolov3p_timg.jpg" alt="Sample"  width="400">
 </p>
 
 
