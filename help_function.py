@@ -189,36 +189,39 @@ class BoundBox:
 # s2
 def _sigmoid(x):
 	return 1. / (1. + np.exp(-x))
+def _softmax(x, axis=-1):
+    x = x - np.amax(x, axis, keepdims=True)
+    e_x = np.exp(x)
+    return e_x / e_x.sum(axis, keepdims=True)
 # s2
 def decode_netout(netout, anchors, obj_thresh, net_h, net_w):
-	grid_h, grid_w = netout.shape[:2]
-	nb_box = 3
-	netout = netout.reshape((grid_h, grid_w, nb_box, -1))
-	nb_class = netout.shape[-1] - 5
-	boxes = []
-	netout[..., :2]  = _sigmoid(netout[..., :2])
-	netout[..., 4:]  = _sigmoid(netout[..., 4:])
-	netout[..., 5:]  = netout[..., 4][..., np.newaxis] * netout[..., 5:]
-	netout[..., 5:] *= netout[..., 5:] > obj_thresh
-
-	for i in range(grid_h*grid_w):
-		row = i / grid_w
-		col = i % grid_w
-		for b in range(nb_box):
-			# 4th element is objectness score
-			objectness = netout[int(row)][int(col)][b][4]
-			if(objectness.all() <= obj_thresh): continue
-			# first 4 elements are x, y, w, and h
-			x, y, w, h = netout[int(row)][int(col)][b][:4]
-			x = (col + x) / grid_w # center position, unit: image width
-			y = (row + y) / grid_h # center position, unit: image height
-			w = anchors[2 * b + 0] * np.exp(w) / net_w # unit: image width
-			h = anchors[2 * b + 1] * np.exp(h) / net_h # unit: image height
-			# last elements are class probabilities
-			classes = netout[int(row)][col][b][5:]
-			box = BoundBox(x-w/2, y-h/2, x+w/2, y+h/2, objectness, classes)
-			boxes.append(box)
-	return boxes
+    grid_h, grid_w = netout.shape[:2]
+    nb_box = 3
+    netout = netout.reshape((grid_h, grid_w, nb_box, -1))
+    nb_class = netout.shape[-1] - 5
+    boxes = []
+    netout[..., :2]  = _sigmoid(netout[..., :2])
+    netout[..., 4]   = _sigmoid(netout[..., 4])
+    netout[..., 5:]  = netout[..., 4][..., np.newaxis] * _softmax(netout[..., 5:])
+    netout[..., 5:] *= netout[..., 5:] > obj_thresh
+    for i in range(grid_h*grid_w):
+        row = i // grid_w
+        col = i % grid_w
+        for b in range(nb_box):
+            # 4th element is objectness score
+            objectness = netout[row, col, b, 4]
+            if(objectness <= obj_thresh): continue
+            # first 4 elements are x, y, w, and h
+            x, y, w, h = netout[row,col,b,:4]
+            x = (col + x) / grid_w # center position, unit: image width
+            y = (row + y) / grid_h # center position, unit: image height
+            w = anchors[2 * b + 0] * np.exp(w) / net_w # unit: image width
+            h = anchors[2 * b + 1] * np.exp(h) / net_h # unit: image height  
+            # last elements are class probabilities
+            classes = netout[row,col,b,5:]
+            box = BoundBox(x-w/2, y-h/2, x+w/2, y+h/2, objectness, classes)
+            boxes.append(box)
+    return boxes
 # s2
 def correct_yolo_boxes(boxes, image_h, image_w, net_h, net_w):
 	new_w, new_h = net_w, net_h
@@ -269,17 +272,17 @@ def do_nms(boxes, nms_thresh):
 					boxes[index_j].classes[c] = 0
 # s2
 def labels():
-    labels = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck",
-        	"boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
-        	"bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe",
-        	"backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
-        	"sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
-        	"tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana",
-        	"apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake",
-        	"chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse",
-        	"remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
-        	"book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
-    return labels
+	labels = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck",
+			"boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench",
+			"bird", "cat", "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe",
+			"backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard",
+			"sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard",
+			"tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana",
+			"apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake",
+			"chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse",
+			"remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator",
+			"book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"]
+	return labels
 # s2
 def anchors():
     anchors = [[116,90, 156,198, 373,326], [30,61, 62,45, 59,119], [10,13, 16,30, 33,23]]
@@ -291,6 +294,14 @@ def load_image_pixels(filename, shape):
 	width, height = image.size    # 获取长宽
     # 再次加载（按照要求的图片大小加载图片）
 	image = load_img(filename, target_size=shape)
+	image = img_to_array(image)   # 图片转array
+	image = image.astype('float32')
+	image /= 255.0                # 将图片数值压缩为 0-1
+	image = expand_dims(image, 0) # 图片增维
+	return image, width, height
+def load_image_pixels2(image, shape):
+	width, height = image.size    # 获取长宽
+	image = image.resize(shape)
 	image = img_to_array(image)   # 图片转array
 	image = image.astype('float32')
 	image /= 255.0                # 将图片数值压缩为 0-1
@@ -324,3 +335,39 @@ def draw_boxes(filename, v_boxes, v_labels, v_scores):
 		label = "%s (%.3f)" % (v_labels[i], v_scores[i])         # 定义标签：识别类别和可能性
 		plt.text(x1, y1, label, color='white')                   # 绘画标签
 	plt.show()
+    
+# 绘画所有识别框
+from PIL import ImageDraw, ImageFont
+def draw_boxes2(im, v_boxes, v_labels, v_scores):
+	draw = ImageDraw.Draw(im)
+	font = ImageFont.truetype("micross.ttf", 20)
+	for i in range(len(v_boxes)):
+		box = v_boxes[i]
+		y1, x1, y2, x2 = box.ymin, box.xmin, box.ymax, box.xmax  # 获取坐标
+		line = 1
+		for j in range(1, line + 1):
+			draw.rectangle((x1+j,y1+j,x2-j,y2-j), outline='white')
+		label = "%s (%.3f)" % (v_labels[i], v_scores[i])
+		draw.text((x1,y1-25), label, fill="white", font=font, align='left')
+	return im
+
+
+def predict_fig(img,model):
+    # 加载图片并获取原图长宽
+    labels_ = labels()          # 定义标签类别
+    anchors_ = anchors()        # 定义anchors
+    class_threshold=0.6          # 设置置信度阈值
+    input_w, input_h = 416, 416  # 定义模型接收的图片大小
+    image, image_w, image_h = load_image_pixels2(img, (input_w, input_h))
+    yhat = model.predict(image)  # 预测（即识别过程）输出为array列表
+    boxes = list()               # 创建空列表用以存储边界框信息
+    for i in range(len(yhat)):   # 解码边界框的坐标
+    	boxes += decode_netout(yhat[i][0], anchors_[i], class_threshold, input_h, input_w)
+    # 矫正边界框大小
+    correct_yolo_boxes(boxes, image_h, image_w, input_h, input_w)
+    do_nms(boxes, 0.5)         # 去除重叠边界框的预测类别（而非框本身）
+    # 获取边界框详细信息
+    v_boxes, v_labels, v_scores = get_boxes(boxes, labels_, class_threshold)
+    result = draw_boxes2(img, v_boxes, v_labels, v_scores)  # 成图
+    return result
+
