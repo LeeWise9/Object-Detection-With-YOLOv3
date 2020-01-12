@@ -35,6 +35,7 @@ Object Detection With YOLOv3 in Keras
 	<img src="https://github.com/LeeWise9/Img_repositories/blob/master/yolov3_opimg.jpg" alt="Sample"  width="400">
 </p>
 
+视频处理结果请访问[该链接](https://pan.baidu.com/s/1QNTwjhMCcJ5gIKpqEDV-5A)，密码52c0。
 
 下面详细讲解预测图片过程中的几个重要步骤：1.图片预处理，2.调用模型做预测计算，3.处理计算结果，4.结果显示。
 
